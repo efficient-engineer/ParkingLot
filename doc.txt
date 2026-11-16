@@ -67,4 +67,5 @@
 
 ## Implementation
 
+For multiple concurrent entrances, each spot uses a `ReadWriteLock`. Entrances claim a spot through an atomic `tryOccupy` operation, which checks its supported vehicle type and availability under the write lock. Availability queries use the read lock, and the ticket map is concurrent so separate parking and exit operations can proceed safely.
 

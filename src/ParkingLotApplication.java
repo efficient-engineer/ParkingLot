@@ -1,7 +1,7 @@
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ParkingLotApplication {
 
@@ -10,27 +10,31 @@ public class ParkingLotApplication {
 
     public ParkingLotApplication(List<ParkingSpot> parkingSpots) {
         this.parkingSpots = parkingSpots;
-        ticketIdMap = new HashMap<>();
+        ticketIdMap = new ConcurrentHashMap<>();
     }
 
-    public Ticket park(Vehicle v) {
-        ParkingSpot ps = getAvailableSpot(v);
+    public Ticket park(Vehicle vehicleType) {
+        ParkingSpot ps = tryToOccupyAvailableSpot(vehicleType);
         if (ps == null) {
-            throw new RuntimeException("Couldn't find");
+            throw new IllegalStateException("No compatible parking spot available");
         }
-        ps.setAvailability(false);
-        Ticket t = generateTicket(v, ps);
-        ticketIdMap.put(t.getId(), t);;
-        return t;
+        try {
+            Ticket t = generateTicket(vehicleType, ps);
+            ticketIdMap.put(t.getId(), t);
+            return t;
+        } catch (RuntimeException | Error e) {
+            ps.release();
+            throw e;
+        }
     }
 
-    private Ticket generateTicket(Vehicle v, ParkingSpot ps) {
-        return new Ticket(v, ps.getId());
+    private Ticket generateTicket(Vehicle vehicleType, ParkingSpot ps) {
+        return new Ticket(vehicleType, ps.getId());
     }
 
-    private ParkingSpot getAvailableSpot(Vehicle v) {
+    private ParkingSpot tryToOccupyAvailableSpot(Vehicle vehicleType) {
         for (ParkingSpot spot : parkingSpots) {
-            if (spot.getV().equals(v) && spot.isAvailable()) {
+            if (spot.tryOccupy(vehicleType)) {
                 return spot;
             }
         }
@@ -38,17 +42,16 @@ public class ParkingLotApplication {
     }
 
     public double exit(UUID id) {
-        Ticket ticket = ticketIdMap.get(id);
+        Ticket ticket = ticketIdMap.remove(id);
         if(ticket == null) throw new RuntimeException("Invalid Ticket");
         setSpotToAvailable(ticket.getSpotId());
-        ticketIdMap.remove(id);
         return FeeCalculator.calculate(ticket);
     }
 
     private void setSpotToAvailable(int spotId) {
         for(ParkingSpot spot : parkingSpots) {
             if(spot.getId() == spotId) {
-                spot.setAvailability(true);
+                spot.release();
                 return;
             }
         }
