@@ -1,0 +1,70 @@
+## Requirements
+
+###Design a parking lot system where different types of vehicles can park,
+    and the system manages spot assignment and calculates fees upon exit."
+
+### Question : Does the system auto assigns a spot or security guard enters some detail?
+-> That's external to our system, you'll given the vehicle size
+
+### Question : What types of vehicles might come to our system?
+ -> Bike, Hatchback, SUV/Vans.
+
+### Question : Is there a base fee for each vehicle? And what are the rates per hours
+ -> No, just hourly rate of 10 INR for every hour
+
+### Question : Will they be charged for completed time, or even at the first minute on an hour.
+ -> Hours completed
+
+### What happens when a vehicle enters, do they get some token to prove they parked there?
+-> Yes, they get a uniqueId, spot.
+
+### What happens when someone tries to enter and there's no available spot? and someone trying to exit
+    with invalid token id
+-> appropriate error message
+
+### What is someone loses their ticket, do we have to handle that case
+-> let's assume they never lose
+
+### Is there any analytics required, DB or in memory
+-> In Memory
+
+### Will this be multitenant application?
+-> No
+
+### What is out of scope?
+-> Payment processing, security camera and other such infrastructure, metrics, DB
+---
+
+## Core Entities
+- Application
+- ParkingSpot
+- Token
+- FeeCalculator
+
+## Class Design
+
+1. Application
+    - ParkingSpot[]
+    + park(VehicleSize) : Token
+    + exit(Token) : double
+
+2. ParkingSpot
+    - isAvailable
+    + isAvailable() : boolean
+    + markOccupied() : void
+
+3. Token
+    - TokenId
+    - VehicleSize
+    - entryTime
+    - exitTime
+    - isPaid
+
+    + isPaid() : boolean
+
+4. FeeCalculator
+    + calculate(VehicleSize, entry, exit) : double
+
+## Implementation
+
+
